@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; script-src 'self'" />
+  <title>LiveBridge</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="chooser">
+    <div class="brand">
+      <h1>LiveBridge</h1>
+      <p>Emite a TikTok LIVE (o a cualquier destino RTMP) desde este ordenador,
+         mostrando la pantalla de otro equipo de tu red local.</p>
+    </div>
+
+    <div class="cards">
+      <button class="card" id="go-studio">
+        <div class="icon">🎬</div>
+        <h2>Estudio</h2>
+        <p>Este equipo compone la escena y emite a TikTok. Es el que tiene la cuenta
+           y la clave de retransmisión.</p>
+      </button>
+
+      <button class="card" id="go-sender">
+        <div class="icon">🖥️</div>
+        <h2>Emisor</h2>
+        <p>Este equipo solo manda su pantalla al Estudio por la red local.
+           Instálalo en el otro ordenador.</p>
+      </button>
+    </div>
+
+    <p class="hint" id="env"></p>
+  </div>
+
+  <script src="js/chooser.js"></script>
+</body>
+</html>

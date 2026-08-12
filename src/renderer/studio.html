@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; script-src 'self'" />
+  <title>LiveBridge · Estudio</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <button class="btn" id="back">‹ Modo</button>
+      <span class="title">Estudio</span>
+      <span class="pill"><span class="dot" id="peer-dot"></span><span id="peer-text">Sin emisor</span></span>
+      <span class="pill"><span class="dot" id="live-dot"></span><span id="live-text">Parado</span></span>
+      <span class="spacer"></span>
+      <span class="pill" id="clock">00:00:00</span>
+      <span class="pill" id="ff-stats">—</span>
+      <button class="btn primary" id="go-live">Iniciar emisión</button>
+      <button class="btn danger" id="stop-live" disabled>Detener</button>
+    </div>
+
+    <div class="split">
+      <aside class="sidebar">
+
+        <div class="group">
+          <h3>Fuente principal</h3>
+          <div class="body">
+            <div class="field">
+              <select id="source-kind">
+                <option value="remote">Pantalla de otro ordenador (red local)</option>
+                <option value="device">Capturadora HDMI / webcam</option>
+                <option value="screen">Pantalla de este ordenador</option>
+              </select>
+            </div>
+
+            <div id="pane-remote">
+              <div class="field">
+                <label>El emisor debe introducir estos datos</label>
+                <div class="row">
+                  <select id="ip-list" class="grow"></select>
+                  <button class="btn" id="copy-ip">Copiar</button>
+                </div>
+              </div>
+              <div class="row">
+                <div class="field grow">
+                  <label>Puerto</label>
+                  <input type="number" id="port" min="1024" max="65535" />
+                </div>
+                <div class="field grow">
+                  <label>Código</label>
+                  <div class="row">
+                    <input type="text" id="code" maxlength="6" class="grow" />
+                    <button class="btn" id="new-code">↻</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <div class="code-display" id="code-big">------</div>
+                <div class="hint" id="server-state">Servidor de emparejamiento parado.</div>
+              </div>
+              <button class="btn wide" id="restart-server">Reiniciar servidor</button>
+            </div>
+
+            <div id="pane-device" hidden>
+              <div class="field">
+                <label>Dispositivo de vídeo</label>
+                <select id="video-device"></select>
+              </div>
+              <div class="field">
+                <label class="check">
+                  <input type="checkbox" id="device-audio" checked />
+                  Usar también su audio (HDMI)
+                </label>
+              </div>
+              <button class="btn wide" id="refresh-devices">Actualizar dispositivos</button>
+            </div>
+
+            <div id="pane-screen" hidden>
+              <div class="field">
+                <label>Pantalla o ventana de este equipo</label>
+                <select id="local-source"></select>
+              </div>
+              <button class="btn wide" id="refresh-local">Actualizar lista</button>
+            </div>
+
+            <div class="row mt-12">
+              <div class="field grow">
+                <label>Encaje</label>
+                <select id="fit">
+                  <option value="contain">Completo (barras)</option>
+                  <option value="cover">Rellenar (recorta)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Fondo</label>
+                <input type="color" id="background" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Tu cámara</h3>
+          <div class="body">
+            <div class="field">
+              <label class="check">
+                <input type="checkbox" id="cam-enabled" />
+                Mostrar mi cámara sobre la pantalla
+              </label>
+            </div>
+            <div class="field">
+              <label>Cámara</label>
+              <select id="cam-device"></select>
+            </div>
+            <div class="row">
+              <div class="field grow">
+                <label>Posición</label>
+                <select id="cam-position">
+                  <option value="bottom-right">Abajo derecha</option>
+                  <option value="bottom-left">Abajo izquierda</option>
+                  <option value="top-right">Arriba derecha</option>
+                  <option value="top-left">Arriba izquierda</option>
+                </select>
+              </div>
+              <div class="field grow">
+                <label>Forma</label>
+                <select id="cam-shape">
+                  <option value="rect">Rectángulo</option>
+                  <option value="circle">Círculo</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Tamaño: <span id="cam-size-label">26</span>%</label>
+              <input type="range" id="cam-size" min="10" max="60" />
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Audio</h3>
+          <div class="body">
+            <div class="field">
+              <label>Micrófono</label>
+              <select id="mic-device"></select>
+            </div>
+            <div class="field">
+              <label>Volumen del micrófono: <span id="mic-gain-label">100</span>%</label>
+              <input type="range" id="mic-gain" min="0" max="200" />
+            </div>
+            <div class="field">
+              <label>Volumen de la fuente: <span id="remote-gain-label">100</span>%</label>
+              <input type="range" id="remote-gain" min="0" max="200" />
+            </div>
+            <div class="field">
+              <label class="check">
+                <input type="checkbox" id="monitor" />
+                Escuchar la mezcla por los altavoces
+              </label>
+              <div class="hint">Usa auriculares o el micro producirá acoplamiento.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Salida</h3>
+          <div class="body">
+            <div class="field">
+              <label>Formato</label>
+              <select id="preset">
+                <option value="1080x1920">Vertical 1080×1920 (TikTok)</option>
+                <option value="720x1280">Vertical 720×1280 (menos CPU)</option>
+                <option value="1920x1080">Horizontal 1920×1080</option>
+                <option value="1280x720">Horizontal 1280×720</option>
+              </select>
+            </div>
+            <div class="row">
+              <div class="field grow">
+                <label>FPS</label>
+                <select id="fps">
+                  <option value="30">30</option>
+                  <option value="24">24</option>
+                  <option value="60">60</option>
+                </select>
+              </div>
+              <div class="field grow">
+                <label>Bitrate vídeo (kbps)</label>
+                <input type="number" id="bitrate" min="800" max="12000" step="100" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Bitrate audio (kbps)</label>
+              <select id="audio-bitrate">
+                <option value="128">128</option>
+                <option value="160">160</option>
+                <option value="192">192</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Destino</h3>
+          <div class="body">
+            <div class="field">
+              <select id="output-mode">
+                <option value="rtmp">Emitir por RTMP (TikTok LIVE)</option>
+                <option value="file">Solo grabar a MP4 (prueba)</option>
+              </select>
+            </div>
+
+            <div id="pane-rtmp">
+              <div class="field">
+                <label>URL del servidor</label>
+                <input type="text" id="rtmp-url" placeholder="rtmp://push.tiktokcdn.com/live" />
+              </div>
+              <div class="field">
+                <label>Clave de retransmisión</label>
+                <input type="password" id="rtmp-key" placeholder="stream-…" />
+              </div>
+              <div class="hint">
+                Los obtienes en el panel LIVE de TikTok o en TikTok LIVE Studio.
+                <a href="#" id="open-tiktok">Abrir panel</a>
+              </div>
+            </div>
+
+            <div id="pane-file" hidden>
+              <div class="field">
+                <label>Fichero de salida</label>
+                <div class="row">
+                  <input type="text" id="file-path" class="grow" readonly />
+                  <button class="btn" id="pick-file">Elegir</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="field mt-10">
+              <label class="check">
+                <input type="checkbox" id="auto-retry" checked />
+                Reintentar automáticamente si se corta
+              </label>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <div class="main">
+        <div class="stage">
+          <span class="badge" id="stage-badge">Vista previa</span>
+          <canvas id="preview"></canvas>
+        </div>
+
+        <div class="console">
+          <div class="head">
+            <span>Registro</span>
+            <span class="spacer"></span>
+            <button class="btn small" id="clear-log">Limpiar</button>
+          </div>
+          <div class="log" id="log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <video id="v-remote" autoplay muted playsinline hidden></video>
+  <video id="v-device" autoplay muted playsinline hidden></video>
+  <video id="v-screen" autoplay muted playsinline hidden></video>
+  <video id="v-cam" autoplay muted playsinline hidden></video>
+  <audio id="a-remote" autoplay muted hidden></audio>
+
+  <script src="js/common.js"></script>
+  <script src="js/studio.js"></script>
+</body>
+</html>

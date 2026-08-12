@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; script-src 'self'" />
+  <title>LiveBridge · Emisor</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <button class="btn" id="back">‹ Modo</button>
+      <span class="title">Emisor</span>
+      <span class="pill"><span class="dot" id="conn-dot"></span><span id="conn-text">Sin conectar</span></span>
+      <span class="spacer"></span>
+      <span class="pill" id="stat-pill">—</span>
+    </div>
+
+    <div class="sender-wrap">
+      <div>
+        <div class="notice hidden" id="perm-notice">
+          Falta el permiso de <b>Grabación de pantalla</b> para LiveBridge.
+          <button class="btn ml-8" id="open-perms">Abrir Ajustes</button>
+          <div class="hint">Después de concederlo hay que reiniciar la aplicación.</div>
+        </div>
+
+        <div class="notice hidden" id="wayland-notice">
+          Estás en Wayland: al elegir la fuente, el sistema mostrará su propio
+          selector de pantalla. Elige ahí la misma pantalla o ventana.
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" data-kind="screen">Pantallas</button>
+          <button class="tab" data-kind="window">Ventanas</button>
+          <span class="spacer"></span>
+          <button class="btn" id="refresh">Actualizar</button>
+        </div>
+
+        <div class="source-grid" id="sources"></div>
+      </div>
+
+      <div>
+        <div class="group">
+          <h3>Conexión con el Estudio</h3>
+          <div class="body">
+            <div class="field">
+              <label>Dirección IP del Estudio</label>
+              <input type="text" id="host" placeholder="192.168.1.50" />
+            </div>
+            <div class="row">
+              <div class="field grow">
+                <label>Puerto</label>
+                <input type="number" id="port" value="4455" min="1024" max="65535" />
+              </div>
+              <div class="field grow">
+                <label>Código</label>
+                <input type="text" id="code" maxlength="6" placeholder="123456" />
+              </div>
+            </div>
+            <div class="row mt-10">
+              <button class="btn primary grow" id="connect">Conectar y emitir</button>
+              <button class="btn danger" id="disconnect" disabled>Cortar</button>
+            </div>
+            <div class="hint">Ambos equipos deben estar en la misma red local.</div>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Calidad de envío</h3>
+          <div class="body">
+            <div class="row">
+              <div class="field grow">
+                <label>Resolución máx.</label>
+                <select id="res">
+                  <option value="1920x1080">1920 × 1080</option>
+                  <option value="1600x900">1600 × 900</option>
+                  <option value="1280x720">1280 × 720</option>
+                  <option value="2560x1440">2560 × 1440</option>
+                </select>
+              </div>
+              <div class="field grow">
+                <label>FPS</label>
+                <select id="fps">
+                  <option value="30">30</option>
+                  <option value="24">24</option>
+                  <option value="60">60</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="check">
+                <input type="checkbox" id="with-audio" checked />
+                Enviar también el audio del sistema
+              </label>
+              <div class="hint" id="audio-hint"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Lo que estás enviando</h3>
+          <div class="body">
+            <video class="self-preview" id="self" autoplay muted playsinline></video>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Registro</h3>
+          <div class="body p-0">
+            <div class="log compact" id="log"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/sender.js"></script>
+</body>
+</html>
