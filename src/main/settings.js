@@ -11,7 +11,7 @@ const DEFAULTS = {
   studio: {
     port: 4455,
     code: '',
-    preset: '1080x1920',
+    preset: 'auto',
     fps: 30,
     bitrate: 5000,
     audioBitrate: 160,

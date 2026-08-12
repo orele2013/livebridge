@@ -131,10 +131,41 @@ npm run selftest  # graba 6 s del compositor real y cierra la app
 
 ---
 
+## Formato automático
+
+Es el modo por defecto. En vez de encajar la fuente dentro de un formato fijo
+—lo que deja franjas negras o recorta—, **la salida adopta la forma exacta de
+la fuente**: si compartes una pantalla 16:9, el directo sale horizontal; si es
+vertical, sale vertical. Ni bandas ni recorte, y ningún píxel del fotograma
+codificado se desperdicia en negro.
+
+La resolución se limita a caber en 1920×1080 (en la orientación que toque) y
+**nunca se escala hacia arriba**, para no gastar bitrate inventando píxeles:
+
+| Fuente | Salida |
+|--------|--------|
+| 1920×1080 | 1920×1080 |
+| 3840×2160 | 1920×1080 |
+| 1280×800 | 1280×800 |
+| 1600×1200 | 1440×1080 |
+| 1080×1920 | 1080×1920 |
+
+El ajuste se aplica solo al cambiar de fuente, no en mitad de una emisión: si
+la resolución cambia con el directo en marcha se avisa y se aplica al
+reiniciarlo, porque cambiar el tamaño del fotograma sobre la marcha rompería
+la señal.
+
+Si prefieres forzar el vertical de TikTok aunque la fuente sea horizontal,
+elige un formato fijo en *Salida* y usa *Encaje* para decidir entre franjas
+(«Completo») o recorte («Rellenar»).
+
+---
+
 ## Ajustes recomendados
 
 | Formato | Bitrate vídeo | Notas |
 |---------|---------------|-------|
+| Automático | Según resolución | Sin franjas; sigue la orientación de la fuente |
 | 1080×1920 @30 | 5.000–6.000 kbps | Lo estándar en TikTok |
 | 720×1280 @30 | 2.500–3.500 kbps | Si la CPU va justa o la subida es lenta |
 | 1920×1080 @30 | 4.500–6.000 kbps | Directos horizontales |

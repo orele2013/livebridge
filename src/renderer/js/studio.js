@@ -25,6 +25,8 @@ const state = {
   sourceKind: 'remote',
   live: false,
   clean: false,
+  auto: false,
+  autoKey: '',
   startedAt: 0,
   retries: 0,
   raf: null,
@@ -57,7 +59,7 @@ for (const id of [
   'preset', 'fps', 'bitrate', 'audio-bitrate', 'output-mode', 'pane-rtmp', 'pane-file',
   'rtmp-url', 'rtmp-key', 'file-path', 'pick-file', 'auto-retry', 'go-live', 'stop-live',
   'peer-dot', 'peer-text', 'live-dot', 'live-text', 'clock', 'ff-stats', 'stage-badge',
-  'clear-log', 'open-tiktok', 'v-remote', 'v-device', 'v-screen', 'v-cam', 'a-remote',
+  'clear-log', 'open-tiktok', 'fit-note', 'v-remote', 'v-device', 'v-screen', 'v-cam', 'a-remote',
   'clean-view', 'clean-overlay', 'clean-exit', 'clean-dot', 'clean-text', 'clean-clock'
 ]) {
   el[id] = document.getElementById(id);
@@ -280,13 +282,77 @@ function wireControls() {
   });
 }
 
+/** Techo de la salida: cabe en 1920×1080, en la orientación que toque. */
+const MAX_LONG_SIDE = 1920;
+const MAX_SHORT_SIDE = 1080;
+
 function applyPreset(preset) {
+  state.auto = preset === 'auto';
+  el.fit.disabled = state.auto;
+  el['fit-note'].textContent = state.auto ? '(no aplica en automático)' : '';
+
+  if (state.auto) {
+    // El tamaño real se toma de la fuente en cuanto llegue la primera imagen.
+    state.autoKey = '';
+    updateBadge();
+    return;
+  }
+
   const [w, h] = preset.split('x').map(Number);
+  setCanvasSize(w, h);
+}
+
+/**
+ * En automático la salida copia la forma de la fuente: ni franjas negras ni
+ * recorte, y la orientación (horizontal o vertical) sale de la propia pantalla.
+ * Nunca se escala hacia arriba, para no gastar bitrate inventando píxeles.
+ */
+function computeAutoSize(vw, vh) {
+  const long = Math.max(vw, vh);
+  const short = Math.min(vw, vh);
+  const scale = Math.min(1, MAX_LONG_SIDE / long, MAX_SHORT_SIDE / short);
+  return { width: toEven(vw * scale), height: toEven(vh * scale) };
+}
+
+// H.264 con yuv420p exige dimensiones pares.
+function toEven(n) {
+  return Math.max(2, Math.round(n / 2) * 2);
+}
+
+function setCanvasSize(w, h) {
+  if (state.width === w && state.height === h) return;
   state.width = w;
   state.height = h;
   el.preview.width = w;
   el.preview.height = h;
-  el['stage-badge'].textContent = `Vista previa · ${w}×${h}`;
+  updateBadge();
+  if (state.clean) window.api.win.clean({ on: true, width: w, height: h });
+}
+
+function updateBadge() {
+  const orientation = state.width > state.height ? 'horizontal'
+    : state.width < state.height ? 'vertical' : 'cuadrado';
+  el['stage-badge'].textContent = state.auto
+    ? `Vista previa · automático ${state.width}×${state.height} (${orientation})`
+    : `Vista previa · ${state.width}×${state.height}`;
+}
+
+/** Ajusta el lienzo a la fuente actual cuando el modo automático está activo. */
+function syncAutoSize(video) {
+  if (!state.auto || !video || !video.videoWidth) return;
+
+  const key = `${video.videoWidth}x${video.videoHeight}`;
+  if (key === state.autoKey) return;
+  state.autoKey = key;
+
+  if (state.live) {
+    log('La fuente cambió de tamaño; el formato se ajustará al reiniciar la emisión.', 'warn');
+    return;
+  }
+
+  const { width, height } = computeAutoSize(video.videoWidth, video.videoHeight);
+  setCanvasSize(width, height);
+  log(`Formato automático: ${width}×${height} (fuente ${key})`, 'ok');
 }
 
 function showSourcePane() {
@@ -484,12 +550,14 @@ function startDrawLoop() {
 }
 
 function drawFrame() {
+  const main = activeVideo();
+  syncAutoSize(main);
+
   const { width: W, height: H } = state;
 
   ctx2d.fillStyle = state.background;
   ctx2d.fillRect(0, 0, W, H);
 
-  const main = activeVideo();
   if (main && main.videoWidth && main.readyState >= 2) {
     drawFitted(main, state.fit);
   } else {
@@ -958,6 +1026,22 @@ async function runSelfTest() {
     window.api.quit(1);
     return;
   }
+
+  // El cálculo del formato automático, con fuentes de distinta forma.
+  const casos = [
+    [1920, 1080, 1920, 1080], // 16:9 nativo, se respeta
+    [2560, 1440, 1920, 1080], // 2K horizontal, se reduce
+    [3840, 2160, 1920, 1080], // 4K horizontal, se reduce
+    [1280, 800, 1280, 800],   // portátil 16:10, no se escala hacia arriba
+    [1600, 1200, 1440, 1080], // 4:3, limitado por el lado corto
+    [1080, 1920, 1080, 1920], // vertical nativo
+    [1200, 1600, 1080, 1440]  // vertical 3:4
+  ];
+  const fallos = casos.filter(([vw, vh, w, h]) => {
+    const r = computeAutoSize(vw, vh);
+    return r.width !== w || r.height !== h;
+  });
+  console.warn(`[selftest] formato automático: ${fallos.length === 0 ? 'OK' : `FALLO en ${JSON.stringify(fallos)}`}`);
 
   // De paso ejercitamos la vista limpia mientras se está grabando.
   setTimeout(() => {

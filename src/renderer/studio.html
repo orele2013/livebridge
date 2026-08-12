@@ -88,7 +88,7 @@
 
             <div class="row mt-12">
               <div class="field grow">
-                <label>Encaje</label>
+                <label>Encaje <span id="fit-note" class="hint"></span></label>
                 <select id="fit">
                   <option value="contain">Completo (barras)</option>
                   <option value="cover">Rellenar (recorta)</option>
@@ -171,6 +171,7 @@
             <div class="field">
               <label>Formato</label>
               <select id="preset">
+                <option value="auto">Automático · sin franjas negras</option>
                 <option value="1080x1920">Vertical 1080×1920 (TikTok)</option>
                 <option value="720x1280">Vertical 720×1280 (menos CPU)</option>
                 <option value="1920x1080">Horizontal 1920×1080</option>
