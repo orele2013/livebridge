@@ -69,6 +69,29 @@ al publicar una etiqueta `v*`.
 
 ---
 
+## Vista limpia (para TikTok LIVE Studio u OBS)
+
+Si tu cuenta no tiene permiso para emitir por RTMP —el permiso de LIVE en el
+móvil y el de escritorio son distintos—, puedes usar LiveBridge solo como
+mezclador y que sea LIVE Studio quien emita.
+
+Pulsa **Vista limpia** en la barra superior (o doble clic sobre la vista
+previa). La interfaz desaparece, queda únicamente la imagen compuesta y la
+ventana se ajusta a la proporción de salida, de modo que al capturarla desde
+otro programa recoges exactamente la composición, sin bordes ni controles.
+
+Luego, en LIVE Studio, añade una fuente de **captura de ventana** apuntando a
+LiveBridge.
+
+Se sale con **Esc** o con el botón flotante, que se desvanece a los 2,5
+segundos para no aparecer en la captura. Se puede entrar y salir en mitad de
+una emisión: no afecta a la señal.
+
+Ten en cuenta que por esta vía la imagen se comprime dos veces, así que el
+texto pequeño pierde algo de nitidez frente a la emisión directa por RTMP.
+
+---
+
 ## Detalles técnicos
 
 - **Transporte entre equipos**: WebRTC punto a punto, con un WebSocket propio

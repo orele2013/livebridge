@@ -3,7 +3,7 @@
 const path = require('path');
 const {
   app, BrowserWindow, ipcMain, desktopCapturer, dialog, shell,
-  systemPreferences, powerSaveBlocker, session, Menu
+  systemPreferences, powerSaveBlocker, session, screen, Menu
 } = require('electron');
 
 const settings = require('./settings');
@@ -251,6 +251,42 @@ ipcMain.handle('stream:status', () => streamer.status());
 
 ipcMain.on('stream:chunk', (_e, buffer) => {
   streamer.write(Buffer.from(buffer));
+});
+
+/**
+ * Vista limpia: ajusta la ventana a la proporción de salida y la bloquea ahí,
+ * para que quien capture la ventana desde fuera recoja la composición exacta
+ * sin bordes ni interfaz.
+ */
+let boundsBeforeClean = null;
+
+ipcMain.handle('win:clean', (_e, { on, width, height }) => {
+  if (!win || win.isDestroyed()) return false;
+
+  if (on) {
+    boundsBeforeClean = win.getBounds();
+    const ratio = width / height;
+    const area = screen.getDisplayNearestPoint(win.getBounds()).workAreaSize;
+
+    let h = Math.min(height, Math.round(area.height * 0.88));
+    let w = Math.round(h * ratio);
+    if (w > area.width * 0.88) {
+      w = Math.round(area.width * 0.88);
+      h = Math.round(w / ratio);
+    }
+
+    win.setMinimumSize(240, 240);
+    win.setContentSize(w, h);
+    win.setAspectRatio(ratio);
+    win.center();
+  } else {
+    win.setAspectRatio(0);
+    win.setMinimumSize(980, 640);
+    if (boundsBeforeClean) win.setBounds(boundsBeforeClean);
+    boundsBeforeClean = null;
+  }
+
+  return true;
 });
 
 ipcMain.handle('dialog:save-file', async (_e, defaultName) => {

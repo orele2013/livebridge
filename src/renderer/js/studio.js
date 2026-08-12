@@ -24,6 +24,7 @@ const state = {
   background: '#000000',
   sourceKind: 'remote',
   live: false,
+  clean: false,
   startedAt: 0,
   retries: 0,
   raf: null,
@@ -56,7 +57,8 @@ for (const id of [
   'preset', 'fps', 'bitrate', 'audio-bitrate', 'output-mode', 'pane-rtmp', 'pane-file',
   'rtmp-url', 'rtmp-key', 'file-path', 'pick-file', 'auto-retry', 'go-live', 'stop-live',
   'peer-dot', 'peer-text', 'live-dot', 'live-text', 'clock', 'ff-stats', 'stage-badge',
-  'clear-log', 'open-tiktok', 'v-remote', 'v-device', 'v-screen', 'v-cam', 'a-remote'
+  'clear-log', 'open-tiktok', 'v-remote', 'v-device', 'v-screen', 'v-cam', 'a-remote',
+  'clean-view', 'clean-overlay', 'clean-exit', 'clean-dot', 'clean-text', 'clean-clock'
 ]) {
   el[id] = document.getElementById(id);
 }
@@ -150,6 +152,8 @@ function wireControls() {
   el.preset.addEventListener('change', () => {
     applyPreset(el.preset.value);
     persist({ preset: el.preset.value });
+    // La ventana de vista limpia sigue la proporción de salida.
+    if (state.clean) window.api.win.clean({ on: true, width: state.width, height: state.height });
     if (state.live) log('El formato cambiará al reiniciar la emisión.', 'warn');
   });
 
@@ -257,6 +261,18 @@ function wireControls() {
 
   el['go-live'].addEventListener('click', () => startStreaming(false));
   el['stop-live'].addEventListener('click', () => stopStreaming(true));
+
+  el['clean-view'].addEventListener('click', () => setCleanView(true));
+  el['clean-exit'].addEventListener('click', () => setCleanView(false));
+  $('.stage').addEventListener('dblclick', () => setCleanView(!state.clean));
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && state.clean) setCleanView(false);
+  });
+
+  document.addEventListener('mousemove', () => {
+    if (state.clean) revealOverlay();
+  });
 
   window.addEventListener('beforeunload', () => {
     window.api.stream.stop();
@@ -887,7 +903,40 @@ window.api.stream.onEnded(async (info) => {
 });
 
 function tickClock() {
-  el.clock.textContent = state.live ? fmtDuration((Date.now() - state.startedAt) / 1000) : '00:00:00';
+  const text = state.live ? fmtDuration((Date.now() - state.startedAt) / 1000) : '00:00:00';
+  el.clock.textContent = text;
+  if (state.clean) {
+    el['clean-clock'].textContent = text;
+    el['clean-dot'].className = el['live-dot'].className;
+    el['clean-text'].textContent = el['live-text'].textContent;
+  }
+}
+
+// ------------------------------------------------------------- vista limpia
+
+/**
+ * Oculta toda la interfaz y deja solo el canvas, con la ventana ajustada a la
+ * proporción de salida. Pensado para que TikTok LIVE Studio (u OBS) capture
+ * esta ventana y reciba exactamente la composición.
+ */
+function setCleanView(on) {
+  state.clean = on;
+  document.body.classList.toggle('clean', on);
+  el['clean-overlay'].hidden = !on;
+  window.api.win.clean({ on, width: state.width, height: state.height });
+  if (on) {
+    revealOverlay();
+    log('Vista limpia activada. Captura esta ventana desde LIVE Studio; sal con Esc.', 'ok');
+  }
+}
+
+/** El aviso flotante se desvanece solo para no salir en la captura. */
+function revealOverlay() {
+  el['clean-overlay'].classList.remove('faded');
+  clearTimeout(revealOverlay.timer);
+  revealOverlay.timer = setTimeout(() => {
+    el['clean-overlay'].classList.add('faded');
+  }, 2500);
 }
 
 /**
@@ -909,6 +958,16 @@ async function runSelfTest() {
     window.api.quit(1);
     return;
   }
+
+  // De paso ejercitamos la vista limpia mientras se está grabando.
+  setTimeout(() => {
+    setCleanView(true);
+    const ok = document.body.classList.contains('clean')
+      && getComputedStyle($('.sidebar')).display === 'none';
+    console.warn(`[selftest] vista limpia: ${ok ? 'OK' : 'FALLO'}`);
+    setCleanView(false);
+    console.warn(`[selftest] vuelta a normal: ${document.body.classList.contains('clean') ? 'FALLO' : 'OK'}`);
+  }, 3000);
 
   setTimeout(async () => {
     await stopStreaming(true);

@@ -430,6 +430,54 @@ input[type="color"] {
 
 a { color: var(--accent-2); }
 
+/* ------------------------------------------------------------ vista limpia */
+
+/* Deja en la ventana únicamente el canvas compuesto, para que otro programa
+   (TikTok LIVE Studio, OBS…) pueda capturar la ventana sin recoger la
+   interfaz. El fondo es negro puro: si la ventana no tiene exactamente la
+   proporción de salida, lo que sobra no se distingue de las barras. */
+
+body.clean .topbar,
+body.clean .sidebar,
+body.clean .console,
+body.clean .stage .badge {
+  display: none;
+}
+
+body.clean .app { grid-template-rows: 1fr; }
+body.clean .split { grid-template-columns: 1fr; }
+body.clean .main { grid-template-rows: 1fr; }
+
+body.clean .stage {
+  padding: 0;
+  background: #000;
+}
+
+body.clean #preview {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+#clean-overlay {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(10, 11, 16, .88);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  transition: opacity .35s;
+}
+
+#clean-overlay[hidden] { display: none; }
+#clean-overlay.faded { opacity: 0; pointer-events: none; }
+
 /* -------------------------------------------------------------- utilidades */
 
 .spacer { flex: 1; }

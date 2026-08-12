@@ -50,6 +50,10 @@ contextBridge.exposeInMainWorld('api', {
     onEnded: on('stream:ended')
   },
 
+  win: {
+    clean: (opts) => ipcRenderer.invoke('win:clean', opts)
+  },
+
   dialog: {
     saveFile: (defaultName) => ipcRenderer.invoke('dialog:save-file', defaultName)
   },

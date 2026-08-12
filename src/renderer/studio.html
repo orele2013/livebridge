@@ -17,6 +17,7 @@
       <span class="spacer"></span>
       <span class="pill" id="clock">00:00:00</span>
       <span class="pill" id="ff-stats">—</span>
+      <button class="btn" id="clean-view" title="Deja solo la imagen compuesta, para capturarla desde otro programa">Vista limpia</button>
       <button class="btn primary" id="go-live">Iniciar emisión</button>
       <button class="btn danger" id="stop-live" disabled>Detener</button>
     </div>
@@ -263,6 +264,12 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="clean-overlay" hidden>
+    <span class="pill"><span class="dot" id="clean-dot"></span><span id="clean-text">Parado</span></span>
+    <span class="pill" id="clean-clock">00:00:00</span>
+    <button class="btn" id="clean-exit">Salir de vista limpia (Esc)</button>
   </div>
 
   <video id="v-remote" autoplay muted playsinline hidden></video>
