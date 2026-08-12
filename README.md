@@ -131,6 +131,41 @@ npm run selftest  # graba 6 s del compositor real y cierra la app
 
 ---
 
+## Si se ve borroso
+
+La cadena tiene cuatro puntos donde se pierde detalle. Por orden de impacto:
+
+**1. El envío por WebRTC.** Es el cuello de botella habitual. Chromium, si no
+se le dice lo contrario, trata la captura como vídeo en movimiento y sacrifica
+resolución para sostener los fps: el texto se emborrona. LiveBridge marca la
+pista como `contentHint = 'detail'`, fija `degradationPreference` en
+`maintain-resolution` y sube el techo de bitrate a 16 Mbps por defecto — es red
+local, no consume tu subida a internet.
+
+En el emisor, para máxima nitidez: **Resolución máx.** en *Nativa*, **Techo de
+envío** en *Máxima* si vais por cable, y **Priorizar nitidez (VP9)** marcado.
+VP9 conserva el texto bastante mejor que VP8, que es lo que se negocia por
+defecto. Si el equipo emisor va justo de CPU, desmárcalo para usar H.264.
+
+**2. La resolución de la fuente.** Con el formato automático la salida copia la
+forma y el tamaño de la fuente sin reescalar. Si el emisor envía a 1280×720 y
+esperas 1080p, el detalle no existe: sube la resolución en el emisor.
+
+**3. La ventana, si capturas desde LIVE Studio u OBS.** La vista limpia ajusta
+la ventana para que **cada píxel del lienzo caiga en un píxel físico de
+pantalla**, dividiendo por el factor de escala del monitor — en un Retina 2×,
+un lienzo de 1920×1080 necesita una ventana de 960×540 puntos. Si la pantalla
+no da para tanto, la consola avisa de a cuánto se está capturando realmente.
+
+**4. La codificación final.** El puente interno hacia ffmpeg va a 20 Mbps o
+más, para no recortar detalle antes de la codificación de verdad. En *Salida*,
+el **Esfuerzo de codificación** cambia el preajuste de x264: *Máxima calidad*
+aprovecha mejor cada bit a cambio de CPU. Y sube el **bitrate de vídeo** si tu
+conexión aguanta: 8.000 kbps por defecto, y para texto pequeño a pantalla
+completa 10.000–12.000 no sobran.
+
+---
+
 ## Formato automático
 
 Es el modo por defecto. En vez de encajar la fuente dentro de un formato fijo

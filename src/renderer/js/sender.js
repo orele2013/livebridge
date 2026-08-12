@@ -25,6 +25,8 @@ const el = {
   code: $('#code'),
   res: $('#res'),
   fps: $('#fps'),
+  quality: $('#quality'),
+  sharp: $('#sharp'),
   withAudio: $('#with-audio'),
   audioHint: $('#audio-hint'),
   connect: $('#connect'),
@@ -48,6 +50,8 @@ const el = {
   el.code.value = state.cfg.code || '';
   el.res.value = `${state.cfg.maxWidth}x${state.cfg.maxHeight}`;
   el.fps.value = String(state.cfg.fps || 30);
+  el.quality.value = String(state.cfg.maxBitrate || 16000000);
+  el.sharp.checked = state.cfg.sharp !== false;
   el.withAudio.checked = state.cfg.withAudio !== false;
 
   for (const [node, key] of [[el.host, 'host'], [el.code, 'code']]) {
@@ -55,6 +59,8 @@ const el = {
   }
   el.port.addEventListener('change', () => persist({ port: Number(el.port.value) }));
   el.fps.addEventListener('change', () => persist({ fps: Number(el.fps.value) }));
+  el.quality.addEventListener('change', () => persist({ maxBitrate: Number(el.quality.value) }));
+  el.sharp.addEventListener('change', () => persist({ sharp: el.sharp.checked }));
   el.withAudio.addEventListener('change', () => persist({ withAudio: el.withAudio.checked }));
   el.res.addEventListener('change', () => {
     const [w, h] = el.res.value.split('x').map(Number);
@@ -190,6 +196,12 @@ async function startCapture() {
   el.self.srcObject = stream;
 
   const track = stream.getVideoTracks()[0];
+
+  // Sin esto Chromium trata la captura como vídeo en movimiento: sacrifica
+  // resolución para mantener los fps y el texto sale emborronado. 'detail'
+  // invierte esa prioridad, que es lo que interesa al compartir una pantalla.
+  track.contentHint = 'detail';
+
   const s = track.getSettings();
   log(`Capturando ${s.width}×${s.height} @ ${Math.round(s.frameRate || maxFrameRate)} fps`, 'ok');
   track.addEventListener('ended', () => {
@@ -241,6 +253,38 @@ async function connect() {
   }
 }
 
+/**
+ * VP9 conserva mucho mejor el texto y las líneas finas que VP8, que es lo que
+ * Chromium suele negociar por defecto. H.264 va más suelto de CPU y es la
+ * alternativa si el equipo emisor no da abasto.
+ */
+function applyCodecPreference(pc) {
+  const transceiver = pc.getTransceivers().find(
+    (t) => t.sender && t.sender.track && t.sender.track.kind === 'video'
+  );
+  if (!transceiver || !transceiver.setCodecPreferences) return;
+
+  const caps = typeof RTCRtpSender.getCapabilities === 'function'
+    ? RTCRtpSender.getCapabilities('video')
+    : null;
+  if (!caps || !caps.codecs) return;
+
+  const wanted = el.sharp.checked ? 'video/vp9' : 'video/h264';
+  const preferred = caps.codecs.filter((c) => c.mimeType.toLowerCase() === wanted);
+  if (!preferred.length) {
+    log(`Este equipo no ofrece ${wanted.split('/')[1].toUpperCase()}; se usa el códec por defecto.`, 'warn');
+    return;
+  }
+
+  const rest = caps.codecs.filter((c) => c.mimeType.toLowerCase() !== wanted);
+  try {
+    transceiver.setCodecPreferences([...preferred, ...rest]);
+    log(`Códec preferido: ${wanted.split('/')[1].toUpperCase()}`, 'ok');
+  } catch (err) {
+    log(`No se pudo fijar el códec: ${err.message}`, 'warn');
+  }
+}
+
 async function createPeer() {
   const pc = new RTCPeerConnection({ iceServers: [], bundlePolicy: 'max-bundle' });
   state.pc = pc;
@@ -249,15 +293,25 @@ async function createPeer() {
     pc.addTrack(track, state.stream);
   }
 
+  applyCodecPreference(pc);
+
   // Sube el techo de bitrate: por defecto WebRTC es muy conservador con la
   // captura de pantalla y el texto se ve borroso.
+  const maxBitrate = Number(el.quality.value);
   for (const sender of pc.getSenders()) {
     if (!sender.track || sender.track.kind !== 'video') continue;
     const params = sender.getParameters();
     params.encodings = params.encodings && params.encodings.length ? params.encodings : [{}];
-    params.encodings[0].maxBitrate = 8_000_000;
+    params.encodings[0].maxBitrate = maxBitrate;
+    params.encodings[0].scaleResolutionDownBy = 1;
+    params.encodings[0].maxFramerate = Number(el.fps.value);
     params.degradationPreference = 'maintain-resolution';
-    try { await sender.setParameters(params); } catch {}
+    try {
+      await sender.setParameters(params);
+      log(`Techo de envío: ${Math.round(maxBitrate / 1000)} kbps a resolución completa.`);
+    } catch (err) {
+      log(`No se pudo fijar el bitrate: ${err.message}`, 'warn');
+    }
   }
 
   pc.addEventListener('icecandidate', (event) => {

@@ -39,10 +39,11 @@ function buildArgs(cfg) {
     '-thread_queue_size', '1024',
     '-i', 'pipe:0',
 
-    // vídeo
+    // Vídeo. Sin '-tune zerolatency' a propósito: desactiva fotogramas B y
+    // lookahead, y con ello se pierde bastante calidad por bit. El par de
+    // segundos extra de latencia no importan en un directo.
     '-c:v', 'libx264',
-    '-preset', cfg.x264Preset || 'veryfast',
-    '-tune', 'zerolatency',
+    '-preset', cfg.x264Preset || 'faster',
     '-profile:v', 'high',
     '-pix_fmt', 'yuv420p',
     '-b:v', `${vBitrate}k`,

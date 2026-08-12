@@ -73,10 +73,11 @@
               <div class="field grow">
                 <label>Resolución máx.</label>
                 <select id="res">
+                  <option value="3840x2160">Nativa (sin reducir)</option>
+                  <option value="2560x1440">2560 × 1440</option>
                   <option value="1920x1080">1920 × 1080</option>
                   <option value="1600x900">1600 × 900</option>
                   <option value="1280x720">1280 × 720</option>
-                  <option value="2560x1440">2560 × 1440</option>
                 </select>
               </div>
               <div class="field grow">
@@ -88,6 +89,25 @@
                 </select>
               </div>
             </div>
+            <div class="field">
+              <label>Techo de envío por la red local</label>
+              <select id="quality">
+                <option value="25000000">Máxima · 25 Mbps (cable)</option>
+                <option value="16000000">Alta · 16 Mbps</option>
+                <option value="10000000">Media · 10 Mbps</option>
+                <option value="6000000">Baja · 6 Mbps (WiFi flojo)</option>
+              </select>
+              <div class="hint">Solo viaja por tu red, no consume tu subida a internet.</div>
+            </div>
+
+            <div class="field">
+              <label class="check">
+                <input type="checkbox" id="sharp" checked />
+                Priorizar nitidez del texto (VP9)
+              </label>
+              <div class="hint">Desmárcalo y usará H.264 si este equipo va justo de CPU.</div>
+            </div>
+
             <div class="field">
               <label class="check">
                 <input type="checkbox" id="with-audio" checked />

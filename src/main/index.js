@@ -266,19 +266,32 @@ ipcMain.handle('win:clean', (_e, { on, width, height }) => {
   if (on) {
     boundsBeforeClean = win.getBounds();
     const ratio = width / height;
-    const area = screen.getDisplayNearestPoint(win.getBounds()).workAreaSize;
+    const display = screen.getDisplayNearestPoint(win.getBounds());
+    const scale = display.scaleFactor || 1;
+    const area = display.workAreaSize;
 
-    let h = Math.min(height, Math.round(area.height * 0.88));
-    let w = Math.round(h * ratio);
-    if (w > area.width * 0.88) {
-      w = Math.round(area.width * 0.88);
-      h = Math.round(w / ratio);
+    // El tamaño de ventana va en puntos, pero quien capture la ventana recoge
+    // píxeles físicos. Dividiendo por el factor de escala, cada píxel del
+    // lienzo cae exactamente en un píxel de pantalla: ni interpolación al
+    // mostrarlo ni pérdida al capturarlo.
+    let w = Math.round(width / scale);
+    let h = Math.round(height / scale);
+
+    const maxW = Math.round(area.width * 0.92);
+    const maxH = Math.round(area.height * 0.92);
+    if (w > maxW || h > maxH) {
+      const k = Math.min(maxW / w, maxH / h);
+      w = Math.round(w * k);
+      h = Math.round(h * k);
     }
 
     win.setMinimumSize(240, 240);
     win.setContentSize(w, h);
     win.setAspectRatio(ratio);
     win.center();
+
+    const deviceWidth = Math.round(w * scale);
+    return { ok: true, deviceWidth, deviceHeight: Math.round(h * scale), scale, exact: deviceWidth >= width - 2 };
   } else {
     win.setAspectRatio(0);
     win.setMinimumSize(980, 640);
@@ -286,7 +299,7 @@ ipcMain.handle('win:clean', (_e, { on, width, height }) => {
     boundsBeforeClean = null;
   }
 
-  return true;
+  return { ok: true };
 });
 
 ipcMain.handle('dialog:save-file', async (_e, defaultName) => {

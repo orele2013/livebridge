@@ -56,7 +56,7 @@ for (const id of [
   'device-audio', 'refresh-devices', 'local-source', 'refresh-local', 'fit', 'background',
   'cam-enabled', 'cam-device', 'cam-position', 'cam-shape', 'cam-size', 'cam-size-label',
   'mic-device', 'mic-gain', 'mic-gain-label', 'remote-gain', 'remote-gain-label', 'monitor',
-  'preset', 'fps', 'bitrate', 'audio-bitrate', 'output-mode', 'pane-rtmp', 'pane-file',
+  'preset', 'fps', 'bitrate', 'audio-bitrate', 'x264-preset', 'output-mode', 'pane-rtmp', 'pane-file',
   'rtmp-url', 'rtmp-key', 'file-path', 'pick-file', 'auto-retry', 'go-live', 'stop-live',
   'peer-dot', 'peer-text', 'live-dot', 'live-text', 'clock', 'ff-stats', 'stage-badge',
   'clear-log', 'open-tiktok', 'fit-note', 'v-remote', 'v-device', 'v-screen', 'v-cam', 'a-remote',
@@ -65,7 +65,8 @@ for (const id of [
   el[id] = document.getElementById(id);
 }
 
-const ctx2d = el.preview.getContext('2d', { alpha: false });
+const ctx2d = el.preview.getContext('2d', { alpha: false, desynchronized: true });
+ctx2d.imageSmoothingQuality = 'high';
 
 // -------------------------------------------------------------------- arranque
 
@@ -86,6 +87,7 @@ const ctx2d = el.preview.getContext('2d', { alpha: false });
   el.fps.value = String(cfg.fps);
   el.bitrate.value = cfg.bitrate;
   el['audio-bitrate'].value = String(cfg.audioBitrate);
+  el['x264-preset'].value = cfg.x264Preset;
   el['output-mode'].value = cfg.outputMode;
   el['rtmp-url'].value = cfg.rtmpUrl;
   el['rtmp-key'].value = cfg.rtmpKey;
@@ -162,6 +164,7 @@ function wireControls() {
   el.fps.addEventListener('change', () => persist({ fps: Number(el.fps.value) }));
   el.bitrate.addEventListener('change', () => persist({ bitrate: Number(el.bitrate.value) }));
   el['audio-bitrate'].addEventListener('change', () => persist({ audioBitrate: Number(el['audio-bitrate'].value) }));
+  el['x264-preset'].addEventListener('change', () => persist({ x264Preset: el['x264-preset'].value }));
   el['rtmp-url'].addEventListener('change', () => persist({ rtmpUrl: el['rtmp-url'].value.trim() }));
   el['rtmp-key'].addEventListener('change', () => persist({ rtmpKey: el['rtmp-key'].value.trim() }));
 
@@ -489,6 +492,7 @@ async function activateSource() {
         }
       });
       state.streams.screen = stream;
+      stream.getVideoTracks().forEach((t) => { t.contentHint = 'detail'; });
       el['v-screen'].srcObject = stream;
       log('Pantalla local activa.', 'ok');
     } catch (err) {
@@ -859,7 +863,8 @@ async function startStreaming(isRetry) {
     filePath: el['file-path'].value,
     fps,
     bitrate: Number(el.bitrate.value),
-    audioBitrate: Number(el['audio-bitrate'].value)
+    audioBitrate: Number(el['audio-bitrate'].value),
+    x264Preset: el['x264-preset'].value
   };
 
   try {
@@ -871,10 +876,14 @@ async function startStreaming(isRetry) {
 
   const mimeType = pickMime();
   try {
+    // Este encode es solo el puente interno hacia ffmpeg: no sale por la red,
+    // así que se le da mucho margen. Apretarlo aquí sería perder detalle antes
+    // de la codificación final, y encima dos veces.
+    const bridgeBitrate = Math.max(cfg.bitrate * 3, 20000) * 1000;
     state.recorder = new MediaRecorder(mixed, {
       mimeType: mimeType || undefined,
-      videoBitsPerSecond: cfg.bitrate * 1000 * 1.4,
-      audioBitsPerSecond: cfg.audioBitrate * 1000
+      videoBitsPerSecond: bridgeBitrate,
+      audioBitsPerSecond: Math.max(cfg.audioBitrate, 192) * 1000
     });
   } catch (err) {
     log(`MediaRecorder: ${err.message}`, 'error');
@@ -987,14 +996,24 @@ function tickClock() {
  * proporción de salida. Pensado para que TikTok LIVE Studio (u OBS) capture
  * esta ventana y reciba exactamente la composición.
  */
-function setCleanView(on) {
+async function setCleanView(on) {
   state.clean = on;
   document.body.classList.toggle('clean', on);
   el['clean-overlay'].hidden = !on;
-  window.api.win.clean({ on, width: state.width, height: state.height });
-  if (on) {
-    revealOverlay();
-    log('Vista limpia activada. Captura esta ventana desde LIVE Studio; sal con Esc.', 'ok');
+
+  const res = await window.api.win.clean({ on, width: state.width, height: state.height });
+  if (!on) return;
+
+  revealOverlay();
+  log('Vista limpia activada. Captura esta ventana desde LIVE Studio; sal con Esc.', 'ok');
+
+  if (res && res.deviceWidth) {
+    if (res.exact) {
+      log(`Ventana a ${res.deviceWidth}×${res.deviceHeight} px reales: captura sin pérdida.`, 'ok');
+    } else {
+      log(`La pantalla no da para ${state.width}×${state.height}; se captura a `
+        + `${res.deviceWidth}×${res.deviceHeight} px. Baja la resolución de salida para evitar el reescalado.`, 'warn');
+    }
   }
 }
 

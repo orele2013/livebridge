@@ -13,8 +13,9 @@ const DEFAULTS = {
     code: '',
     preset: 'auto',
     fps: 30,
-    bitrate: 5000,
+    bitrate: 8000,
     audioBitrate: 160,
+    x264Preset: 'faster',
     fit: 'contain',
     background: '#000000',
     rtmpUrl: '',
@@ -35,9 +36,11 @@ const DEFAULTS = {
     host: '',
     port: 4455,
     code: '',
-    maxWidth: 1920,
-    maxHeight: 1080,
+    maxWidth: 3840,
+    maxHeight: 2160,
     fps: 30,
+    maxBitrate: 16000000,
+    sharp: true,
     withAudio: true
   }
 };
