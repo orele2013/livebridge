@@ -4,7 +4,11 @@
   "version": "1.0.0",
   "description": "Emite a TikTok LIVE (u otro RTMP) desde tu ordenador mostrando la pantalla de otro equipo por red local o por capturadora HDMI.",
   "main": "src/main/index.js",
-  "author": "LiveBridge",
+  "author": {
+    "name": "orele2013",
+    "email": "orele2013@users.noreply.github.com"
+  },
+  "repository": "https://github.com/orele2013/livebridge",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
